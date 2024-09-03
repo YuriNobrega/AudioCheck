@@ -1,13 +1,12 @@
+import os
+import datetime
 import schedule
 import time
-from datetime import datetime
 from pydub import AudioSegment
 from pydub.utils import make_chunks
 import numpy as np
-import os
-import threading
 import tkinter as tk
-from tkinter import filedialog, scrolledtext
+from tkinter import scrolledtext
 
 def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshold=-50.0, max_duration_ms=60000):
     """
@@ -46,54 +45,40 @@ def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshol
                 logs.insert(tk.END, f'{filename}: Áudio modulando corretamente.\n')
             else:
                 logs.insert(tk.END, f'{filename}: Som constante sem modulação detectada.\n')
+            logs.yview(tk.END)  # Atualizar a visualização dos logs
 
-def run_daily_checks():
-    # Obter a data atual no formato YYYY-MM-DD
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    # Construir o caminho para o diretório do dia atual
-    folder_path = os.path.join(base_folder.get(), current_date)
-    
-    if os.path.exists(folder_path):
-        logs.insert(tk.END, f'Executando verificações para o diretório: {folder_path}\n')
-        check_audio_modulation(folder_path)
+def find_folder():
+    today = datetime.datetime.now().strftime('%d-%m-%y')
+    folder_name = f"Dia {today}"
+    base_folder = os.path.join(os.getcwd(), folder_name)
+    if os.path.exists(base_folder):
+        check_audio_modulation(base_folder)
     else:
-        logs.insert(tk.END, f'Diretório {folder_path} não encontrado.\n')
+        logs.insert(tk.END, f'Pasta {folder_name} não encontrada.\n')
+        logs.yview(tk.END)
 
-def start_schedule():
-    schedule.every().day.at("07:00").do(run_daily_checks)
-    schedule.every().day.at("12:00").do(run_daily_checks)
-    schedule.every().day.at("18:00").do(run_daily_checks)
-    threading.Thread(target=run_scheduler).start()
-    logs.insert(tk.END, 'Agendamento iniciado para 7:00, 12:00 e 18:00.\n')
+# Configuração da Interface Gráfica
+root = tk.Tk()
+root.title("Verificação de Modulação de Áudio")
+root.geometry("600x400")
 
-def stop_schedule():
-    schedule.clear()
-    logs.insert(tk.END, 'Agendamento parado.\n')
+logs = scrolledtext.ScrolledText(root, width=80, height=20)
+logs.pack(pady=20)
 
-def run_scheduler():
+# Agendamento para horários específicos
+schedule.every().day.at("07:00").do(find_folder)
+schedule.every().day.at("12:00").do(find_folder)
+schedule.every().day.at("18:00").do(find_folder)
+
+def run_schedule():
     while True:
         schedule.run_pending()
-        time.sleep(60)  # Verifica a cada minuto se há tarefas agendadas para executar
+        time.sleep(1)
 
-def select_folder():
-    folder_selected = filedialog.askdirectory()
-    if folder_selected:
-        base_folder.set(folder_selected)
-        logs.insert(tk.END, f'Pasta base selecionada: {folder_selected}\n')
-
-# Criar a janela principal
-root = tk.Tk()
-root.title("Verificador de Áudio Automático")
-
-base_folder = tk.StringVar()
-
-tk.Label(root, text="Pasta base:").pack()
-tk.Entry(root, textvariable=base_folder, width=50).pack()
-tk.Button(root, text="Selecionar Pasta", command=select_folder).pack()
-tk.Button(root, text="Iniciar Agendamento", command=start_schedule).pack()
-tk.Button(root, text="Parar Agendamento", command=stop_schedule).pack()
-
-logs = scrolledtext.ScrolledText(root, width=60, height=20)
-logs.pack()
+# Executar o agendamento em um thread separado
+import threading
+t = threading.Thread(target=run_schedule)
+t.daemon = True
+t.start()
 
 root.mainloop()
