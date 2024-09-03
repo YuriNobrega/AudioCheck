@@ -5,12 +5,16 @@ from pydub import AudioSegment
 from pydub.utils import make_chunks
 import numpy as np
 import os
+import threading
+import tkinter as tk
+from tkinter import filedialog, scrolledtext
 
 def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshold=-50.0, max_duration_ms=60000):
     """
     Verifica se os arquivos de áudio em uma pasta estão modulando corretamente e se há som,
     limitando a análise a 1 minuto de cada arquivo.
     """
+    logs.insert(tk.END, f'Iniciando análise em {folder_path}\n')
     for filename in os.listdir(folder_path):
         if filename.endswith('.mp3') or filename.endswith('.wav'):  # Adicione mais formatos se necessário
             audio_path = os.path.join(folder_path, filename)
@@ -19,7 +23,7 @@ def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshol
             # Limitar o áudio a 1 minuto
             audio = audio[:max_duration_ms]
             
-            print(f'Analisando {filename} até {max_duration_ms / 1000} segundos...')
+            logs.insert(tk.END, f'Analisando {filename} até {max_duration_ms / 1000} segundos...\n')
             
             # Dividir o áudio em chunks de duração especificada
             chunks = make_chunks(audio, chunk_duration_ms)
@@ -37,30 +41,59 @@ def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshol
                     modulation_count += 1
 
             if silence_count == len(chunks):
-                print(f'{filename}: Nenhum som detectado.')
+                logs.insert(tk.END, f'{filename}: Nenhum som detectado.\n')
             elif modulation_count > 0:
-                print(f'{filename}: Áudio modulando corretamente.')
+                logs.insert(tk.END, f'{filename}: Áudio modulando corretamente.\n')
             else:
-                print(f'{filename}: Som constante sem modulação detectada.')
+                logs.insert(tk.END, f'{filename}: Som constante sem modulação detectada.\n')
 
 def run_daily_checks():
     # Obter a data atual no formato YYYY-MM-DD
     current_date = datetime.now().strftime('%Y-%m-%d')
     # Construir o caminho para o diretório do dia atual
-    folder_path = os.path.join(r'', current_date)
+    folder_path = os.path.join(base_folder.get(), current_date)
     
     if os.path.exists(folder_path):
-        print(f'Executando verificações para o diretório: {folder_path}')
+        logs.insert(tk.END, f'Executando verificações para o diretório: {folder_path}\n')
         check_audio_modulation(folder_path)
     else:
-        print(f'Diretório {folder_path} não encontrado.')
+        logs.insert(tk.END, f'Diretório {folder_path} não encontrado.\n')
 
-# Agendar as verificações para os horários especificados
-schedule.every().day.at("07:00").do(run_daily_checks)
-schedule.every().day.at("12:00").do(run_daily_checks)
-schedule.every().day.at("18:00").do(run_daily_checks)
+def start_schedule():
+    schedule.every().day.at("07:00").do(run_daily_checks)
+    schedule.every().day.at("12:00").do(run_daily_checks)
+    schedule.every().day.at("18:00").do(run_daily_checks)
+    threading.Thread(target=run_scheduler).start()
+    logs.insert(tk.END, 'Agendamento iniciado para 7:00, 12:00 e 18:00.\n')
 
-# Loop para manter o agendamento em execução
-while True:
-    schedule.run_pending()
-    time.sleep(60)  # Verifica a cada minuto se há tarefas agendadas para executar
+def stop_schedule():
+    schedule.clear()
+    logs.insert(tk.END, 'Agendamento parado.\n')
+
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(60)  # Verifica a cada minuto se há tarefas agendadas para executar
+
+def select_folder():
+    folder_selected = filedialog.askdirectory()
+    if folder_selected:
+        base_folder.set(folder_selected)
+        logs.insert(tk.END, f'Pasta base selecionada: {folder_selected}\n')
+
+# Criar a janela principal
+root = tk.Tk()
+root.title("Verificador de Áudio Automático")
+
+base_folder = tk.StringVar()
+
+tk.Label(root, text="Pasta base:").pack()
+tk.Entry(root, textvariable=base_folder, width=50).pack()
+tk.Button(root, text="Selecionar Pasta", command=select_folder).pack()
+tk.Button(root, text="Iniciar Agendamento", command=start_schedule).pack()
+tk.Button(root, text="Parar Agendamento", command=stop_schedule).pack()
+
+logs = scrolledtext.ScrolledText(root, width=60, height=20)
+logs.pack()
+
+root.mainloop()
