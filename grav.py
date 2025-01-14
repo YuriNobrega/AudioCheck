@@ -47,7 +47,7 @@ def check_audio_modulation(folder_path, chunk_duration_ms=1000, silence_threshol
             rms = chunk.rms
             dBFS = 20 * np.log10(rms / 32767.0) if rms > 0 else float('-inf')
             
-            # Verificar se o chunk é considerado silêncio
+            # Verificar se o chunk é considerado silencioso
             if dBFS < silence_threshold:
                 silence_count += 1
             else:
