@@ -1,9 +1,6 @@
 
 ![project-img3 9727d0d3](https://github.com/user-attachments/assets/79ed15bf-ac9c-4749-83a4-117859fae35c)
 
-
-
-
 AudioCheck
 A Python tool for automatically checking the RMS modulation of audio files in a folder, designed for scheduled use in a work environment.
 Uma ferramenta em Python para checar automaticamente a modulação RMS de arquivos de áudio em uma pasta, projetada para uso agendado no ambiente de trabalho.
@@ -24,6 +21,8 @@ Registra se a modulação está normal, ausente ou muito alta
 Feito para uso automatizado e agendado (ex: Agendador de Tarefas do Windows)
 Saída exibida no front-end como um log
 🏗️ Architecture Overview / Visão Geral da Arquitetura
+text
+Copy Code
 Audio Folder         AudioCheck (Python)         ffmpeg (System)
 ┌──────────────┐     ┌────────────────────┐     ┌───────────────┐
 │  audio_*.wav │ →→  │ grav.py            │ →→  │ ffmpeg.exe    │
@@ -36,6 +35,8 @@ Audio Folder         AudioCheck (Python)         ffmpeg (System)
 │  selection   │     │  RMS calculation   │     │  Processing   │
 └──────────────┘     └────────────────────┘     └───────────────┘
 📁 Project Structure / Estrutura do Projeto
+text
+Copy Code
 AudioCheck/
 ├── build/grav/           # Build artifacts
 ├── dist/                 # Distribution files
